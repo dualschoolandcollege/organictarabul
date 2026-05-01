@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Product categories",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Category name in Bengali" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Product name" },
+        "description": { "type": "string", "description": "Product description" },
+        "categoryId": { "type": "string", "description": "ID of the category" },
+        "price": { "type": "number", "description": "Base price" },
+        "images": { "type": "array", "items": { "type": "string" }, "description": "List of image URLs" },
+        "videoUrl": { "type": "string", "description": "Direct video URL or embedded link" },
+        "packages": { 
+          "type": "array", 
+          "items": { 
+            "type": "object", 
+            "properties": {
+              "name": { "type": "string", "description": "Package name (e.g. 500g)" },
+              "price": { "type": "number" }
+            }
+          } 
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "categoryId", "price", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer orders",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Optional UID of the logged-in customer" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "package": { "type": "string" },
+        "price": { "type": "number" },
+        "customerName": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "mobileNumber", "status", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "System users (Admins/Customers)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "customer"] }
+      },
+      "required": ["uid", "email", "role"]
+    }
+  },
+  "firestore": {
+    "categories": {
+      "schema": "Category",
+      "description": "Product categories"
+    },
+    "products": {
+      "schema": "Product",
+      "description": "Active products"
+    },
+    "orders": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "users": {
+      "schema": "User",
+      "description": "User profiles and roles"
+    },
+    "admin_appointments": {
+      "schema": {
+        "title": "Admin Appointment",
+        "description": "Pre-appointed admins by email",
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["email", "createdAt"]
+      },
+      "description": "Pre-appointed admins by email"
+    }
+  }
+}

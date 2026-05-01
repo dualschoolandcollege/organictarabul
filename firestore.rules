@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'mohaiminul201104@gmail.com' ||
+        request.auth.token.get('email', '').lower() == 'mohaiminul201104@gmail.com'
+      );
+    }
+
+    function isVerified() {
+      return isSignedIn() && (
+        request.auth.token.get('email_verified', false) == true ||
+        isAdmin() ||
+        (request.auth.token.get('email', '').lower() == 'mohaiminul201104@gmail.com')
+      );
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || (
+        isSignedIn() && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'customer') == 'admin' ||
+          exists(/databases/$(database)/documents/admin_appointments/$(request.auth.token.get('email', request.auth.token.email)).lower())
+        )
+      );
+    }
+
+    function isAppointedAdmin() {
+      let email = request.auth.token.get('email', request.auth.token.email);
+      return isSignedIn() && exists(/databases/$(database)/documents/admin_appointments/$(email.lower()));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Specific Validations ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['admin', 'customer'] &&
+             data.createdAt is string;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['productId', 'mobileNumber', 'status', 'createdAt']) &&
+             data.status == 'pending' &&
+             data.mobileNumber is string &&
+             data.mobileNumber.size() >= 11 &&
+             data.mobileNumber.size() <= 15;
+    }
+
+    function isAdminUpdate(existingData, incomingData) {
+      return isAdmin() && 
+             incomingData.uid == existingData.uid &&
+             incomingData.email == existingData.email &&
+             incomingData.createdAt == existingData.createdAt &&
+             incomingData.role in ['admin', 'customer'];
+    }
+
+    // --- Collection Routes ---
+
+    // Categories
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Products
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow create: if isValidOrder(incoming()) && 
+                    (!isSignedIn() || isVerified());
+      
+      allow read: if isVerified() && (existing().userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Users (Profiles)
+    match /users/{userId} {
+      allow create: if (isSignedIn() && request.auth.uid == userId) || isSuperAdmin();
+      allow get: if isSignedIn() && (
+                    request.auth.uid == userId || 
+                    isAdmin()
+                  );
+      allow list: if isAdmin();
+      allow update: if (isSignedIn() && request.auth.uid == userId && (
+                        incoming().diff(existing()).affectedKeys().hasOnly(['email', 'uid', 'createdAt', 'role', 'isPlaceholder']) &&
+                        (incoming().role == existing().role || isSuperAdmin() || (incoming().role == 'admin' && isAppointedAdmin()))
+                      )) || 
+                    isAdminUpdate(existing(), incoming());
+      allow delete: if isAdmin() || (
+                       resource != null && 
+                       existing().get('isPlaceholder', false) == true && 
+                       existing().get('email', '') == request.auth.token.get('email', '')
+                     );
+    }
+
+    // Admin Appointments
+    match /admin_appointments/{email} {
+      allow read: if isSignedIn() && (isAdmin() || request.auth.token.get('email', '').lower() == email.lower());
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.get('email', '').lower() == email.lower());
+    }
+  }
+}
