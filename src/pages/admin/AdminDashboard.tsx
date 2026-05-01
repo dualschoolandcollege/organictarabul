@@ -18,32 +18,57 @@ export default function AdminDashboard() {
 
   React.useEffect(() => {
     const fetchData = async () => {
-      try {
-        const [pSnap, cSnap, oSnap, aSnap, rSnap] = await Promise.all([
-          getDocs(collection(db, 'products')),
-          getDocs(collection(db, 'categories')),
-          getDocs(query(collection(db, 'orders'), where('status', '==', 'pending'))),
-          getDocs(query(collection(db, 'users'), where('role', '==', 'admin'))),
-          getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(5)))
-        ]);
+      setLoading(true);
+      setError(null);
 
-        setCounts({
-          products: pSnap.size,
-          categories: cSnap.size,
-          orders: oSnap.size,
-          admins: aSnap.size
-        });
-        setRecentOrders(rSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      } catch (e: any) {
-        console.error('Dashboard fetch error:', e);
-        if (e.message?.includes('permission')) {
-          setError('আপনার অ্যাডমিন অ্যাক্সেস এখনও পুরোপুরি কার্যকর হয়নি। দয়া করে কয়েক সেকেন্ড পর পেজটি রিফ্রেশ করুন।');
-        } else {
-          setError('তথ্য লোড করতে সমস্যা হয়েছে।');
-        }
-        setLoading(false);
+      // Fetch basic counts (these rarely fail)
+      try {
+        const [pSnap, cSnap] = await Promise.all([
+          getDocs(collection(db, 'products')),
+          getDocs(collection(db, 'categories'))
+        ]);
+        setCounts(prev => ({ ...prev, products: pSnap.size, categories: cSnap.size }));
+      } catch (e) {
+        console.error('Basic stats error:', e);
       }
+
+      // Fetch Admin count
+      try {
+        const aSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin')));
+        setCounts(prev => ({ ...prev, admins: aSnap.size }));
+      } catch (e: any) {
+        console.error('Admin count error:', e);
+        if (e.message?.includes('permission')) {
+          setError('অ্যাডমিন অ্যাক্সেস যাচাই করা হচ্ছে...');
+        }
+      }
+
+      // Fetch pending orders
+      try {
+        const oSnap = await getDocs(query(collection(db, 'orders'), where('status', '==', 'pending')));
+        setCounts(prev => ({ ...prev, orders: oSnap.size }));
+      } catch (e) {
+        console.error('Orders count error:', e);
+      }
+
+      // Fetch recent orders (might fail if index is missing)
+      try {
+        const rSnap = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(5)));
+        setRecentOrders(rSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e: any) {
+        console.error('Recent orders error:', e);
+        // Fallback: try without ordering if index fails
+        if (e.message?.includes('requires an index')) {
+          try {
+            const fallbackSnap = await getDocs(query(collection(db, 'orders'), limit(5)));
+            setRecentOrders(fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          } catch (err) {
+            console.error('Fallback fetch error:', err);
+          }
+        }
+      }
+
+      setLoading(false);
     };
 
     fetchData();
