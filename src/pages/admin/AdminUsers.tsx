@@ -5,15 +5,8 @@ import { UserRole, UserProfile } from '../../types';
 import { Users, Shield, ShieldAlert, Search, Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext';
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
+import { handleFirestoreError, OperationType } from '../../lib/error-handler';
+import { auth as firebaseAuth } from '../../lib/firebase';
 
 export default function AdminUsers() {
   const { user: currentUser, profile: currentProfile, loading: authLoading } = useAuth();
@@ -23,20 +16,6 @@ export default function AdminUsers() {
   const [searchEmail, setSearchEmail] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
-    const errInfo = {
-      error: error instanceof Error ? error.message : String(error),
-      operationType,
-      path,
-      authInfo: {
-        userId: currentUser?.uid,
-        email: currentUser?.email,
-      }
-    };
-    console.error('Firestore Error:', JSON.stringify(errInfo));
-    return JSON.stringify(errInfo);
-  };
 
   useEffect(() => {
     if (authLoading || !currentUser) return;
@@ -130,7 +109,7 @@ export default function AdminUsers() {
       updateCombinedList();
     }, (error) => {
       console.error('Snapshot error (latest users):', error);
-      setErrorMsg(handleFirestoreError(error, OperationType.LIST, 'users'));
+      handleFirestoreError(error, OperationType.LIST, 'users', firebaseAuth);
       setLoading(false);
     });
 
@@ -319,13 +298,11 @@ export default function AdminUsers() {
             role: newRole
           });
         } catch (error) {
-          console.error('Error updating role:', error);
-          alert('রোল পরিবর্তন করতে সমস্যা হয়েছে। সম্ভবত আপনার পর্যাপ্ত পারমিশন নেই।');
+          handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`, firebaseAuth);
         }
       }
     } catch (error: any) {
-      console.error('Error updating role:', error);
-      alert('রোল পরিবর্তন করতে সমস্যা হয়েছে: ' + (error.message || 'Unknown error'));
+      handleFirestoreError(error, OperationType.UPDATE, 'users', firebaseAuth);
     } finally {
       setUpdating(null);
     }
@@ -374,8 +351,7 @@ export default function AdminUsers() {
             alert('ইউজারকে অ্যাডমিন হিসেবে নিয়োগ দেওয়া হয়েছে।');
             setNewAdminEmail('');
           } catch (error) {
-            console.error('Error promoting existing user:', error);
-            alert('অ্যাডমিন নিয়োগ করতে সমস্যা হয়েছে। সম্ভবত আপনার পর্যাপ্ত পারমিশন নেই।');
+            handleFirestoreError(error, OperationType.UPDATE, `users/${userToUpdate.uid}`, firebaseAuth);
           }
         }
       } else {
@@ -389,8 +365,7 @@ export default function AdminUsers() {
         setNewAdminEmail('');
       }
     } catch (error: any) {
-      console.error('Error adding admin:', error);
-      alert('অ্যাডমিন যোগ করতে সমস্যা হয়েছে: ' + (error.message || 'Unknown error'));
+      handleFirestoreError(error, OperationType.WRITE, 'admin_appointments', firebaseAuth);
     } finally {
       setAddingNew(false);
     }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { Category } from '../../types';
 import { Plus, Trash2, Tag, Save } from 'lucide-react';
+import { handleFirestoreError, OperationType } from '../../lib/error-handler';
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,7 +41,7 @@ export default function AdminCategories() {
       });
       setNewCategory('');
     } catch (error) {
-      console.error(error);
+      handleFirestoreError(error, OperationType.CREATE, 'categories', auth);
     } finally {
       setLoading(false);
     }

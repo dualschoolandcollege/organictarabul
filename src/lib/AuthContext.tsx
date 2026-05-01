@@ -76,6 +76,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               } catch (e) {
                 console.warn('Appointment cleanup check failed:', e);
               }
+            } else {
+              // FOR SUPER ADMIN: Force role sync if different
+              if (data.role !== UserRole.ADMIN) {
+                console.log('Force-syncing super admin role');
+                await updateDoc(docRef, { role: UserRole.ADMIN }).catch(e => console.error('Force sync failed', e));
+              }
             }
           } else {
             console.log('Profile does not exist, checking for appointment or creating default...');

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../lib/firebase';
+import { auth, db, storage } from '../../lib/firebase';
 import { Product, Category } from '../../types';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Package, Plus, Trash2, Image as ImageIcon, Video, Save, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { handleFirestoreError, OperationType } from '../../lib/error-handler';
 
 interface ProductForm {
   name: string;
@@ -99,8 +100,7 @@ export default function AdminProducts() {
       reset();
       setIsAdding(false);
     } catch (error) {
-      console.error('Error adding product:', error);
-      alert('পণ্য যোগ করতে সমস্যা হয়েছে।');
+      handleFirestoreError(error, OperationType.CREATE, 'products', auth);
     } finally {
       setUploading(false);
     }

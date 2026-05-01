@@ -13,32 +13,30 @@ service cloud.firestore {
     }
 
     function isSuperAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'mohaiminul201104@gmail.com' ||
-        request.auth.token.get('email', '').lower() == 'mohaiminul201104@gmail.com'
-      );
+      let email = request.auth.token.get('email', '');
+      return isSignedIn() && email.lower() == 'mohaiminul201104@gmail.com';
     }
 
     function isVerified() {
       return isSignedIn() && (
         request.auth.token.get('email_verified', false) == true ||
-        isAdmin() ||
-        (request.auth.token.get('email', '').lower() == 'mohaiminul201104@gmail.com')
+        isAdmin()
       );
     }
 
     function isAdmin() {
+      let email = request.auth.token.get('email', request.auth.token.email);
       return isSuperAdmin() || (
         isSignedIn() && (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'customer') == 'admin' ||
-          exists(/databases/$(database)/documents/admin_appointments/$(request.auth.token.get('email', request.auth.token.email)).lower())
+          (email != null && exists(/databases/$(database)/documents/admin_appointments/$(email.lower())))
         )
       );
     }
 
     function isAppointedAdmin() {
       let email = request.auth.token.get('email', request.auth.token.email);
-      return isSignedIn() && exists(/databases/$(database)/documents/admin_appointments/$(email.lower()));
+      return isSignedIn() && email != null && exists(/databases/$(database)/documents/admin_appointments/$(email.lower()));
     }
 
     function isValidId(id) {
