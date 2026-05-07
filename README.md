@@ -1,167 +1,100 @@
-# Organic Tarabul Firebase E-commerce
+# Organic Tarabul Firebase E-commerce v2 Premium
 
-This is a complete React + Firebase e-commerce website with:
+This is the upgraded no-Firebase-Storage version. It is designed for Firebase Spark/free usage with media handled by public image/video URLs.
 
-- Bengali product cards
-- Firebase Email/Password login and registration
-- Email verification after registration
-- Guest checkout without login
-- Required customer mobile number
-- Optional customer name and address
-- Product detail page with same-page order summary and submission
-- Admin dashboard
-- Category creation
-- Product card creation
-- Multiple image upload
-- Product image URL support
-- Video file upload
-- Product video link support
-- Multiple package/price options per product
-- Admin order management
-- Firebase Realtime Database seed JSON
-- Firebase Realtime Database rules
-- Firebase Storage rules
+## New features
 
-## 1. Install
+- Premium redesigned home page
+- Highlighted `Organic Tarabul` brand
+- Shareable product campaign links such as `/product/PRODUCT_ID/product-slug`
+- Product image slideshow
+- Multiple package cards visible at once
+- Each package can have its own image
+- Free delivery highlighted on every card and product page
+- Editable products
+- Editable categories
+- Editable website name, hero content, WhatsApp number/message, and footer
+- Floating WhatsApp button controlled by admin
+- Registered customers can see their own order status
+- Admin can update order status: pending, confirmed, processing, shipped, delivered, cancelled
+- Admin dashboard can add more admins by Firebase Auth UID
+- Professional footer with developer credit: `Dual School And College`
+- No Firebase Storage dependency
+
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-## 2. Firebase Console setup
+If PowerShell blocks npm:
 
-Enable these Firebase products:
+```bash
+npm.cmd install
+npm.cmd run dev
+```
 
-1. Authentication > Sign-in method > Email/Password
-2. Realtime Database
-3. Storage
-4. Hosting, if you want to deploy
+## Firebase setup
 
-Your Firebase config is already placed in `src/firebase.js`.
+Enable:
 
-## 3. Import database JSON
+```text
+Authentication > Sign-in method > Email/Password
+```
 
-Open Firebase Console:
+Use Realtime Database.
 
-Realtime Database > three-dot menu > Import JSON
-
-Upload:
+Import:
 
 ```text
 firebase/seed-database.json
 ```
 
-Important: replace this key first:
-
-```json
-"REPLACE_WITH_YOUR_FIREBASE_AUTH_UID": true
-```
-
-with your real Firebase Auth UID after creating/registering your admin account.
-
-## 4. Add database rules
-
-Realtime Database > Rules
-
-Paste the content from:
+Publish rules from:
 
 ```text
 firebase/database.rules.json
 ```
 
-## 5. Add storage rules
+## Admin setup
 
-Storage > Rules
-
-Paste the content from:
-
-```text
-firebase/storage.rules
-```
-
-Storage rules require a Firebase Auth custom claim:
-
-```text
-admin: true
-```
-
-This is intentional. Firebase Storage rules cannot safely read your Realtime Database `/admins` list. Do not weaken the rule in production.
-
-## 6. Create the first admin
-
-1. Register from the website using your email/password.
+1. Register from the website.
 2. Verify your email.
 3. Go to Firebase Console > Authentication > Users.
-4. Copy your UID.
-5. Replace `REPLACE_WITH_YOUR_FIREBASE_AUTH_UID` in the seed JSON, or manually add:
+4. Copy your User UID.
+5. Add this in Realtime Database:
 
 ```json
-admins: {
-  "YOUR_UID": true
+"admins": {
+  "YOUR_UID_HERE": true
 }
 ```
 
-6. For Storage upload permission, set the custom claim using the script below.
+6. Logout and login again.
+7. The Admin button will appear.
 
-## 7. Set admin custom claim
+## Product media setup
 
-Go to:
+This version does not upload images to Firebase Storage.
 
-Firebase Console > Project settings > Service accounts > Generate new private key
-
-Save the downloaded file as:
-
-```text
-scripts/serviceAccountKey.json
-```
-
-Then run:
-
-```bash
-node scripts/setAdminClaim.cjs YOUR_FIREBASE_AUTH_UID
-```
-
-Sign out and sign in again after running the script.
-
-## 8. Build
-
-```bash
-npm run build
-```
-
-## 9. Deploy with Firebase Hosting
-
-```bash
-npm install -g firebase-tools
-firebase login
-firebase use organictarabul
-firebase deploy
-```
-
-## 10. Database schema
-
-Main paths:
+Use public direct image URLs:
 
 ```text
-settings
-admins
-users
-categories
-products
-orders
+https://example.com/product.jpg
+https://example.com/product.webp
 ```
 
-A guest order is saved under:
+For product videos, use YouTube links:
 
 ```text
-orders/{orderId}
+https://www.youtube.com/watch?v=VIDEO_ID
 ```
 
-Only mobile number is required. Name and address can be empty.
+Do not put Base64 images inside Realtime Database.
 
-## 11. Important production warnings
+## Customer order status
 
-Guest checkout means anybody can submit an order. The rules validate the order shape and mobile number, but this does not stop spam. For production, add Firebase App Check, rate limiting through Cloud Functions, or SMS OTP verification.
+Only registered and logged-in customers can see order status in `আমার অর্ডার`.
 
-The Firebase web API key is not a secret, but your security rules are critical. Never leave Realtime Database or Storage open with public write access.
+Guest customers can place orders, but they cannot later track the order from an account because there is no verified account identity attached to the order.
