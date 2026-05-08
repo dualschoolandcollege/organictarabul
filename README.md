@@ -34,7 +34,7 @@ If PowerShell blocks npm:
 npm.cmd install
 npm.cmd run dev
 ```
-
+npm.cmd run build
 ## Firebase setup
 
 Enable:
