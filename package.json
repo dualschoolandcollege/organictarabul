@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node postbuild.cjs",
     "preview": "vite preview",
     "set-admin": "node scripts/setAdminClaim.cjs"
   },
